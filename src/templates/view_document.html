@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ document.document_name }} - PaperLit</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/favicon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -39,8 +40,7 @@
             <div class="flex justify-between h-16">
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
-                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
-                    <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
+                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/paperlit-logo.png') }}" alt="PaperLit">
                 </div>
                 <!-- Navigation Links -->
                 <div class="flex items-center">

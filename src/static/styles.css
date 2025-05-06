@@ -22,12 +22,25 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  display: flex; 
+  display: flex;
+}
+
+/* Logo Styles */
+.logo-container {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.logo {
+  width: auto;
+  height: 80px;
+  max-width: 100%;
+  margin-bottom: 20px;
 }
 
 /* Toggle Panel */
 .toggle-panel {
-  width: 40%; 
+  width: 40%;
   height: 100%;
   background: #239ef0;
   color: #fff;
@@ -36,7 +49,7 @@ body {
   align-items: center;
   flex-direction: column;
   text-align: center;
-  padding: 20px;
+  padding: 40px 25px;
 }
 
 .toggle-panel h2 {
@@ -45,13 +58,14 @@ body {
 }
 
 .toggle-panel p {
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  font-weight: 300;
 }
 
 /* Form Container */
 .form-container {
-  width: 60%; 
+  width: 60%;
   height: 100%;
   display: flex;
   justify-content: center;
@@ -61,11 +75,11 @@ body {
 
 .form-container form {
   background-color: #fff;
-  padding: 30px; 
+  padding: 30px;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px; 
+  max-width: 400px;
 }
 
 .form-container form h2 {
@@ -123,34 +137,34 @@ body {
 
 /* Form Visibility */
 #sign-in-form {
-  display: block; 
+  display: block;
 }
 
 #sign-up-form {
-  display: none; 
+  display: none;
 }
 
 /* Responsive Design */
 @media (max-width: 600px) {
   .container {
-    flex-direction: column; 
+    flex-direction: column;
     width: 100%;
-    height: auto; 
+    height: auto;
   }
 
   .toggle-panel {
-    width: 100%; 
-    height: auto; 
+    width: 100%;
+    height: auto;
     padding: 20px;
   }
 
   .form-container {
-    width: 100%; 
-    height: auto; 
+    width: 100%;
+    height: auto;
     padding: 20px;
   }
 
   .form-container form {
-    max-width: 100%; 
+    max-width: 100%;
   }
 }

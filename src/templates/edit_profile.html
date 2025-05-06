@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile - PaperLit</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/favicon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -15,8 +16,7 @@
             <div class="flex justify-between h-16">
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
-                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
-                    <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
+                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/paperlit-logo.png') }}" alt="PaperLit">
                 </div>
                 <!-- Profile Dropdown -->
                 <div class="flex items-center">
@@ -33,23 +33,113 @@
     <!-- Main Content Area -->
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
+            <!-- Flash Messages -->
+            <div id="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="mb-4">
+                            {% for category, message in messages %}
+                                <div class="flash-message p-4 mb-2 rounded-md flex justify-between items-center {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% elif category == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    <span>{{ message }}</span>
+                                    <button type="button" class="dismiss-flash text-gray-500 hover:text-gray-700" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
             <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">Edit Profile</h1>
 
-                <form method="POST" action="{{ url_for('edit_profile') }}" class="space-y-6">
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                        <input type="text" id="username" name="username" value="{{ session['user'] }}" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Left Column -->
+                        <div class="space-y-6">
+                            <!-- Avatar Upload -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+                                <div class="flex items-center">
+                                    <div class="mr-4">
+                                        <img id="avatar-preview" src="{{ url_for('static', filename=user.avatar_path if user.avatar_path else 'images/avatar-placeholder.png') }}"
+                                             alt="Profile Picture" class="h-24 w-24 rounded-full object-cover border-2 border-gray-200">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label for="avatar" class="cursor-pointer px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium">
+                                            <span>Choose File</span>
+                                            <input id="avatar" name="avatar" type="file" accept="image/*" class="hidden" onchange="previewAvatar(event)">
+                                        </label>
+                                        <p class="mt-1 text-xs text-gray-500">JPG, PNG or GIF. Max 2MB.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Username -->
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                                <input type="text" id="username" name="username" value="{{ user.username }}" required
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">This is your unique identifier on the platform.</p>
+                            </div>
+
+                            <!-- Email -->
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                                <input type="email" id="email" name="email" value="{{ user.email }}" required
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">We'll never share your email with anyone else.</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="space-y-6">
+                            <!-- Full Name -->
+                            <div>
+                                <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                                <input type="text" id="full_name" name="full_name" value="{{ user.full_name or '' }}"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+
+                            <!-- Institution -->
+                            <div>
+                                <label for="institution" class="block text-sm font-medium text-gray-700">Institution</label>
+                                <input type="text" id="institution" name="institution" value="{{ user.institution or '' }}"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">University, organization, or company.</p>
+                            </div>
+
+                            <!-- Bio -->
+                            <div>
+                                <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
+                                <textarea id="bio" name="bio" rows="4"
+                                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ user.bio or '' }}</textarea>
+                                <p class="mt-1 text-xs text-gray-500">Tell us a little about yourself.</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="email" name="email" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <!-- Password Change Section -->
+                    <div class="pt-6 mt-6 border-t border-gray-200">
+                        <h2 class="text-lg font-medium text-gray-800 mb-4">Change Password</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="current_password" class="block text-sm font-medium text-gray-700">Current Password</label>
+                                <input type="password" id="current_password" name="current_password"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Leave blank if you don't want to change your password.</p>
+                            </div>
+                            <div>
+                                <label for="new_password" class="block text-sm font-medium text-gray-700">New Password</label>
+                                <input type="password" id="new_password" name="new_password"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="flex justify-end">
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end pt-6">
                         <a href="{{ url_for('home') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 mr-3">
                             Cancel
                         </a>
@@ -61,5 +151,69 @@
             </div>
         </div>
     </div>
+
+    <style>
+        /* Flash message styles */
+        .flash-message {
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+    </style>
+
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set timeout for each flash message
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    fadeOut(message);
+                }, 5000); // 5 seconds
+            });
+
+            // Add click event listeners to dismiss buttons
+            const dismissButtons = document.querySelectorAll('.dismiss-flash');
+            dismissButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const flashMessage = this.closest('.flash-message');
+                    fadeOut(flashMessage);
+                });
+            });
+
+            // Fade out animation function
+            function fadeOut(element) {
+                let opacity = 1;
+                const timer = setInterval(function() {
+                    if (opacity <= 0.1) {
+                        clearInterval(timer);
+                        element.style.display = 'none';
+                    }
+                    element.style.opacity = opacity;
+                    opacity -= 0.1;
+                }, 50);
+            }
+        });
+
+        // Avatar preview function
+        function previewAvatar(event) {
+            const input = event.target;
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Check file size (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('File size exceeds 2MB. Please choose a smaller image.');
+                    input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatar-preview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
 </body>
 </html>
