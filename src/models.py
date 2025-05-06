@@ -3,7 +3,6 @@ Database models and SQLAlchemy initialization for Paperlit.
 """
 from flask_sqlalchemy import SQLAlchemy
 
-# Initialize SQLAlchemy (do not bind to app yet)
 db = SQLAlchemy()
 
 class User(db.Model):

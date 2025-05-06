@@ -4,21 +4,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+    <title>Edit Profile - PaperLit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Edit Profile</h1>
-        <form method="POST" action="{{ url_for('edit_profile') }}">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" value="{{ session['user'] }}" required>
+<body class="bg-gray-100 font-sans">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center">
+                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
+                    <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
+                </div>
+                <!-- Profile Dropdown -->
+                <div class="flex items-center">
+                    <div class="relative">
+                        <a href="{{ url_for('home') }}" class="text-gray-700 hover:text-blue-600 mr-4">
+                            <i class="fas fa-home mr-1"></i> Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Edit Profile</h1>
 
-            <button type="submit">Save Changes</button>
-        </form>
+                <form method="POST" action="{{ url_for('edit_profile') }}" class="space-y-6">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" name="username" value="{{ session['user'] }}" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" name="email" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+
+                    <div class="flex justify-end">
+                        <a href="{{ url_for('home') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 mr-3">
+                            Cancel
+                        </a>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </body>
 </html>

@@ -4,11 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - PaperLit</title>
-    <!-- Remove old CSS link -->
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}"> -->
-    <!-- Add Font Awesome (optional, but used for icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Add Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Add minimal custom style for dropdown, if needed */
@@ -49,17 +45,13 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
-
-    <!-- Top Navigation Bar -->
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
                     <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
                     <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
                 </div>
-                <!-- Profile Dropdown -->
                 <div class="flex items-center">
                     <div class="relative">
                         <button id="profile-avatar-button" class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition duration-150 ease-in-out">
@@ -75,11 +67,11 @@
         </div>
     </nav>
 
-    <!-- Main Content Area -->
+
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
 
-            <!-- Welcome Message / Title Area -->
+
              <div id="welcome-area" class="mb-6 flex justify-between items-center">
                 <h1 class="text-3xl font-bold text-gray-800">My Documents</h1>
                  <button id="new-review-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -87,7 +79,7 @@
                 </button>
             </div>
 
-            <!-- Document Table Section (Initially Visible) -->
+
             <div id="document-table-section" class="bg-white shadow overflow-hidden sm:rounded-lg">
                 {% if documents %}
                 <table class="min-w-full divide-y divide-gray-200">
@@ -120,8 +112,6 @@
                                 <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Download">
                                     <i class="fas fa-download"></i>
                                 </a>
-                                <!-- Placeholder for delete action -->
-                                <!-- <button class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash"></i></button> -->
                             </td>
                         </tr>
                         {% endfor %}
@@ -135,7 +125,7 @@
                 {% endif %}
             </div>
 
-            <!-- Upload Form Section (Initially Hidden) -->
+
             <div id="upload-form-section" class="hidden mt-6 bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Upload a Document</h2>
                 <form action="{{ url_for('plagiarism.upload_document') }}" method="POST" enctype="multipart/form-data">
@@ -165,7 +155,7 @@
     </div>
 
     <script>
-        // Profile Dropdown Toggle
+
         const profileButton = document.getElementById('profile-avatar-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
         profileButton.addEventListener('click', () => {
@@ -177,7 +167,7 @@
             }
         });
 
-        // Toggle Upload Form Visibility
+
         const newReviewBtn = document.getElementById('new-review-btn');
         const cancelUploadBtn = document.getElementById('cancel-upload-btn');
         const welcomeArea = document.getElementById('welcome-area');
@@ -194,16 +184,15 @@
             uploadFormSection.classList.add('hidden');
             welcomeArea.classList.remove('hidden');
             documentTableSection.classList.remove('hidden');
-             // Reset file input potentially
              const fileInput = document.getElementById('document-file');
              const dragDropText = document.getElementById('drag-drop-text');
              const selectedFileName = document.getElementById('selected-file-name');
-             fileInput.value = ''; // Clear selected file
+             fileInput.value = '';
              dragDropText.textContent = 'Drag and drop your file here, or click to select a file';
              selectedFileName.textContent = '';
         });
-        
-        // Drag and Drop Area Handling
+
+
         const dragDropArea = document.getElementById('drag-drop-area');
         const fileInput = document.getElementById('document-file');
         const dragDropText = document.getElementById('drag-drop-text');
@@ -221,7 +210,7 @@
         });
 
         dragDropArea.addEventListener('dragover', (event) => {
-            event.preventDefault(); // Prevent default behavior
+            event.preventDefault();
             dragDropArea.classList.add('border-blue-300', 'bg-blue-100');
         });
 
@@ -230,10 +219,10 @@
         });
 
         dragDropArea.addEventListener('drop', (event) => {
-            event.preventDefault(); // Prevent default behavior
+            event.preventDefault();
             dragDropArea.classList.remove('border-blue-300', 'bg-blue-100');
             if (event.dataTransfer.files.length > 0) {
-                fileInput.files = event.dataTransfer.files; // Assign dropped files to input
+                fileInput.files = event.dataTransfer.files;
                 dragDropText.textContent = 'File selected:';
                 selectedFileName.textContent = fileInput.files[0].name;
             }
