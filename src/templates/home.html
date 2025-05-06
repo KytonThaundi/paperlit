@@ -71,6 +71,20 @@
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
 
+            <!-- Flash Messages - Only shown in document table section -->
+            <div id="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="mb-4">
+                            {% for category, message in messages %}
+                                <div class="p-4 mb-2 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% elif category == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
 
              <div id="welcome-area" class="mb-6 flex justify-between items-center">
                 <h1 class="text-3xl font-bold text-gray-800">My Documents</h1>
@@ -98,12 +112,15 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {% if document.originality_score is not none %}
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        {% if document.originality_score >= 0.9 %} bg-green-100 text-green-800 
-                                        {% elif document.originality_score >= 0.7 %} bg-yellow-100 text-yellow-800 
-                                        {% else %} bg-red-100 text-red-800 {% endif %}">
+                                    <a href="{{ url_for('view_document', document_id=document.id) }}"
+                                       target="_blank"
+                                       class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:opacity-80
+                                        {% if document.originality_score >= 0.9 %} bg-green-100 text-green-800
+                                        {% elif document.originality_score >= 0.7 %} bg-yellow-100 text-yellow-800
+                                        {% else %} bg-red-100 text-red-800 {% endif %}"
+                                       title="Click to view document with similarity highlights in a new tab">
                                         {{ (document.originality_score * 100) | round(1) }}%
-                                    </span>
+                                    </a>
                                 {% else %}
                                     <span class="text-gray-400 italic">Processing...</span>
                                 {% endif %}
@@ -112,6 +129,12 @@
                                 <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Download">
                                     <i class="fas fa-download"></i>
                                 </a>
+                                <button onclick="editDocument({{ document.id }}, '{{ document.document_name }}')" class="text-green-600 hover:text-green-900 mr-3" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="confirmDelete({{ document.id }}, '{{ document.document_name }}')" class="text-red-600 hover:text-red-900" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -131,7 +154,7 @@
                 <form action="{{ url_for('plagiarism.upload_document') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-4">
                         <label for="document-name" class="block text-sm font-medium text-gray-700">Document Name</label>
-                        <input type="text" id="document-name" name="document_name" placeholder="Enter a name for your document" required 
+                        <input type="text" id="document-name" name="document_name" placeholder="Enter a name for your document" required
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     </div>
 
@@ -151,6 +174,20 @@
                 </form>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
+            <p class="text-gray-600 mb-6">Are you sure you want to delete "<span id="document-name-to-delete"></span>"? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none">Cancel</button>
+                <form id="delete-form" method="POST" action="">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none">Delete</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -174,22 +211,51 @@
         const documentTableSection = document.getElementById('document-table-section');
         const uploadFormSection = document.getElementById('upload-form-section');
 
+        const flashMessages = document.getElementById('flash-messages');
+
         newReviewBtn.addEventListener('click', () => {
             welcomeArea.classList.add('hidden');
             documentTableSection.classList.add('hidden');
+            flashMessages.classList.add('hidden'); // Hide flash messages when showing upload form
             uploadFormSection.classList.remove('hidden');
+
+            // Reset form fields in case they were set for editing
+            document.getElementById('document-name').value = '';
+            document.getElementById('document-file').value = '';
+            document.getElementById('drag-drop-text').textContent = 'Drag and drop your file here, or click to select a file';
+            document.getElementById('selected-file-name').textContent = '';
         });
+
+        // Check if we're in edit mode from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const editMode = urlParams.get('edit');
+        if (editMode && {{ editing_document_id|default('null') }}) {
+            // Show the upload form in edit mode
+            welcomeArea.classList.add('hidden');
+            documentTableSection.classList.add('hidden');
+            flashMessages.classList.add('hidden');
+            uploadFormSection.classList.remove('hidden');
+
+            // Set the document name in the form
+            const documentName = "{{ editing_document_name|default('') }}";
+            if (documentName) {
+                document.getElementById('document-name').value = documentName;
+            }
+        }
 
         cancelUploadBtn.addEventListener('click', () => {
             uploadFormSection.classList.add('hidden');
             welcomeArea.classList.remove('hidden');
             documentTableSection.classList.remove('hidden');
-             const fileInput = document.getElementById('document-file');
-             const dragDropText = document.getElementById('drag-drop-text');
-             const selectedFileName = document.getElementById('selected-file-name');
-             fileInput.value = '';
-             dragDropText.textContent = 'Drag and drop your file here, or click to select a file';
-             selectedFileName.textContent = '';
+            flashMessages.classList.remove('hidden'); // Show flash messages when returning to document list
+
+            // Reset form
+            const fileInput = document.getElementById('document-file');
+            const dragDropText = document.getElementById('drag-drop-text');
+            const selectedFileName = document.getElementById('selected-file-name');
+            fileInput.value = '';
+            dragDropText.textContent = 'Drag and drop your file here, or click to select a file';
+            selectedFileName.textContent = '';
         });
 
 
@@ -225,6 +291,57 @@
                 fileInput.files = event.dataTransfer.files;
                 dragDropText.textContent = 'File selected:';
                 selectedFileName.textContent = fileInput.files[0].name;
+            }
+        });
+
+        // Edit document function
+        function editDocument(documentId, documentName) {
+            // Set the document name in the form
+            document.getElementById('document-name').value = documentName;
+
+            // Show the upload form
+            welcomeArea.classList.add('hidden');
+            documentTableSection.classList.add('hidden');
+            flashMessages.classList.add('hidden');
+            uploadFormSection.classList.remove('hidden');
+
+            // Add a URL parameter to indicate we're editing
+            window.history.pushState({}, '', `${window.location.pathname}?edit=${documentId}`);
+
+            // Set a flag in the form to indicate we're editing
+            fetch(`/edit_document/${documentId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to initialize edit mode');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while trying to edit the document.');
+                });
+        }
+
+        // Delete document function
+        function confirmDelete(documentId, documentName) {
+            // Set the document name in the confirmation modal
+            document.getElementById('document-name-to-delete').textContent = documentName;
+
+            // Set the form action
+            document.getElementById('delete-form').action = `/delete_document/${documentId}`;
+
+            // Show the modal
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        // Cancel delete button
+        document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+            document.getElementById('delete-modal').classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('delete-modal').addEventListener('click', (event) => {
+            if (event.target === document.getElementById('delete-modal')) {
+                document.getElementById('delete-modal').classList.add('hidden');
             }
         });
 

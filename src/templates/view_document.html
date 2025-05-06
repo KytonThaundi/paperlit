@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ document.document_name }} - PaperLit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .highlight {
+            background-color: rgba(255, 165, 0, 0.3);
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+        .highlight-strong {
+            background-color: rgba(255, 99, 71, 0.4);
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+        .document-text {
+            white-space: pre-wrap;
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+        }
+        .sidebar {
+            height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+        .main-content {
+            height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center">
+                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
+                    <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
+                </div>
+                <!-- Navigation Links -->
+                <div class="flex items-center">
+                    <a href="{{ url_for('home') }}" class="text-gray-700 hover:text-blue-600 mr-4">
+                        <i class="fas fa-home mr-1"></i> Home
+                    </a>
+                    <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-gray-700 hover:text-blue-600 mr-4">
+                        <i class="fas fa-download mr-1"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="flex">
+        <!-- Document Content -->
+        <div class="main-content w-3/4 p-6 bg-white shadow-md m-4 rounded-lg">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">{{ document.document_name }}</h1>
+            <div class="flex items-center mb-4">
+                <span class="text-sm text-gray-600 mr-4">Uploaded: {{ document.uploaded_at.strftime('%Y-%m-%d') }}</span>
+                <span class="px-2 py-1 rounded-full text-sm font-semibold
+                    {% if document.originality_score > 0.9 %}bg-green-100 text-green-800
+                    {% elif document.originality_score > 0.7 %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    Originality: {{ (document.originality_score * 100)|int }}%
+                </span>
+            </div>
+
+            {% if file_extension == '.pdf' %}
+                <!-- PDF Viewer using PDF.js -->
+                <div class="mb-4 relative" style="height: calc(100vh - 200px);">
+                    <div id="pdf-container" class="w-full h-full border rounded-md overflow-hidden">
+                        <iframe id="pdf-viewer" src="{{ url_for('static', filename='pdfjs/web/viewer.html') }}?file={{ url_for('serve_document', document_id=document.id, _external=True) }}"
+                                class="w-full h-full border-0" allowfullscreen></iframe>
+                    </div>
+                    <div id="pdf-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+                </div>
+            {% else %}
+                <!-- Text document viewer with highlighting -->
+                <div id="document-content" class="document-text text-gray-800 border p-4 rounded-md">
+                    {{ document_text|safe }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Similarity Sidebar -->
+        <div class="sidebar w-1/4 bg-white shadow-md m-4 p-4 rounded-lg border-l-4 border-blue-500">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Similarity Analysis</h2>
+                <a href="{{ url_for('home') }}" class="text-sm text-blue-600 hover:text-blue-800" title="Back to document list">
+                    <i class="fas fa-arrow-left mr-1"></i> Back
+                </a>
+            </div>
+
+            {% if similarity_details and similarity_details.similar_documents %}
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-gray-700">
+                            This document has {{ (100 - document.originality_score * 100)|int }}% similarity with other content.
+                        </p>
+                        <a href="{{ url_for('serve_document', document_id=document.id) }}"
+                           target="_blank"
+                           class="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                           title="Open document in new tab">
+                            <i class="fas fa-external-link-alt mr-1"></i> View
+                        </a>
+                    </div>
+
+                    {% if similarity_details.ai_detected_similarities %}
+                        <div class="mt-2 p-3 bg-blue-50 rounded-md">
+                            <p class="text-blue-800 font-medium">
+                                <i class="fas fa-robot mr-1"></i> AI detected similarities with {{ similarity_details.ai_detected_similarities }} published sources
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h3 class="text-lg font-medium text-gray-800 mb-2">Similar Content</h3>
+                <ul class="space-y-3">
+                    {% for doc in similarity_details.similar_documents %}
+                        <li class="border-b pb-2 {% if doc.document_type == 'Published Material' %}bg-blue-50 p-2 rounded-md{% endif %}">
+                            <div class="flex items-center">
+                                {% if doc.document_type == 'Published Material' %}
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2">
+                                        <i class="fas fa-book mr-1"></i> Published
+                                    </span>
+                                {% else %}
+                                    <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full mr-2">
+                                        <i class="fas fa-file-alt mr-1"></i> User Document
+                                    </span>
+                                {% endif %}
+                                <p class="font-medium text-gray-800">{{ doc.document_name }}</p>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Similarity: {{ (doc.similarity_score * 100)|int }}%</p>
+                            {% if doc.source %}
+                                <p class="text-sm text-gray-600">Source: {{ doc.source }}</p>
+                            {% endif %}
+                            {% if doc.matching_blocks %}
+                                <button onclick="highlightMatches('{{ loop.index }}')"
+                                        class="mt-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md text-sm flex items-center w-full justify-between">
+                                    <span>
+                                        <i class="fas fa-search mr-1"></i>
+                                        Highlight {{ doc.matching_blocks|length }} matching sections
+                                    </span>
+                                    <i class="fas fa-chevron-down toggle-icon-{{ loop.index }}"></i>
+                                </button>
+                                <div id="matches-{{ loop.index }}" class="hidden mt-2 bg-gray-50 p-3 rounded-md border-l-2 border-blue-400">
+                                    <p class="text-sm text-gray-700 font-medium mb-2">Matching content:</p>
+                                    <ul class="text-sm text-gray-600 space-y-2">
+                                        {% for block in doc.matching_blocks[:5] %}
+                                            <li class="p-2 bg-white rounded shadow-sm hover:shadow-md transition-shadow duration-200">
+                                                <div class="{% if doc.document_type == 'Published Material' %}highlight-published{% else %}highlight-user{% endif %} p-1 rounded">
+                                                    "{{ block.text|truncate(80) }}"
+                                                </div>
+                                                <div class="text-xs text-gray-500 mt-1">
+                                                    Position: characters {{ block.a_start }}-{{ block.a_end }}
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                        {% if doc.matching_blocks|length > 5 %}
+                                            <li class="text-center text-gray-500 italic">
+                                                And {{ doc.matching_blocks|length - 5 }} more matches...
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-gray-700">No significant similarities found with other documents.</p>
+            {% endif %}
+
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-800 mb-2">Summary</h3>
+                <p class="text-gray-700">
+                    {% if document.originality_score > 0.9 %}
+                        This document appears to be highly original with minimal similarity to other content.
+                    {% elif document.originality_score > 0.7 %}
+                        This document contains some similarities with other content, but is mostly original.
+                    {% else %}
+                        This document has significant similarities with other content. Review the highlighted sections.
+                    {% endif %}
+                </p>
+
+                {% if similarity_details.ai_detected_similarities %}
+                    <div class="mt-3 p-3 bg-yellow-50 rounded-md">
+                        <p class="text-yellow-800">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <strong>AI has detected similarities with published materials.</strong>
+                            This may indicate potential citation needs or academic integrity concerns.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store similarity data for highlighting
+        const similarityData = {{ similarity_details|tojson }};
+
+        // Function to highlight matching text in text documents
+        function highlightDocument() {
+            // Only run for text documents, not PDFs
+            {% if file_extension != '.pdf' %}
+                const documentContent = document.getElementById('document-content');
+                if (!documentContent) return;
+
+                const documentText = documentContent.innerText;
+
+                {% if similarity_details and similarity_details.similar_documents %}
+                    const matches = [];
+
+                    {% for doc in similarity_details.similar_documents %}
+                        {% for block in doc.matching_blocks %}
+                            matches.push({
+                                start: {{ block.a_start }},
+                                end: {{ block.a_end }},
+                                text: "{{ block.text|replace('"', '\\"')|replace('\n', ' ') }}",
+                                similarity: {{ doc.similarity_score }},
+                                docType: "{{ doc.document_type|default('User Document') }}"
+                            });
+                        {% endfor %}
+                    {% endfor %}
+
+                    // Sort matches by position (descending) to avoid index shifting
+                    matches.sort((a, b) => b.start - a.start);
+
+                    // Apply highlights
+                    let html = documentText;
+                    for (const match of matches) {
+                        const before = html.substring(0, match.start);
+                        const matched = html.substring(match.start, match.end);
+                        const after = html.substring(match.end);
+
+                        // Choose highlight class based on document type and similarity
+                        let highlightClass = 'highlight';
+                        if (match.docType === 'Published Material') {
+                            highlightClass = match.similarity > 0.5 ? 'highlight-published-strong' : 'highlight-published';
+                        } else {
+                            highlightClass = match.similarity > 0.5 ? 'highlight-user-strong' : 'highlight-user';
+                        }
+
+                        html = before + `<span class="${highlightClass}">${matched}</span>` + after;
+                    }
+
+                    documentContent.innerHTML = html;
+                {% endif %}
+            {% endif %}
+        }
+
+        // Function to toggle visibility of matching content and highlight in document
+        function highlightMatches(index) {
+            const matchesDiv = document.getElementById(`matches-${index}`);
+            const toggleIcon = document.querySelector(`.toggle-icon-${index}`);
+            const docIndex = index - 1; // Convert from 1-based to 0-based index
+
+            // Toggle visibility of the matches div
+            if (matchesDiv.classList.contains('hidden')) {
+                // Hide all other match divs first and reset their icons
+                document.querySelectorAll('[id^="matches-"]').forEach((div, idx) => {
+                    if (div !== matchesDiv) {
+                        div.classList.add('hidden');
+                        const otherIcon = document.querySelector(`.toggle-icon-${idx+1}`);
+                        if (otherIcon) otherIcon.classList.remove('fa-chevron-up');
+                        if (otherIcon) otherIcon.classList.add('fa-chevron-down');
+                    }
+                });
+
+                // Show this match div and update icon
+                matchesDiv.classList.remove('hidden');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-down');
+                    toggleIcon.classList.add('fa-chevron-up');
+                }
+
+                // Highlight the matching text
+                {% if file_extension == '.pdf' %}
+                    // For PDF documents, use the PDF.js viewer
+                    if (similarityData &&
+                        similarityData.similar_documents &&
+                        similarityData.similar_documents[docIndex] &&
+                        similarityData.similar_documents[docIndex].matching_blocks) {
+
+                        const blocks = similarityData.similar_documents[docIndex].matching_blocks;
+                        const docType = similarityData.similar_documents[docIndex].document_type || 'User Document';
+
+                        // Get a color based on the document type
+                        const color = docType === 'Published Material' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(249, 115, 22, 0.3)';
+
+                        // Send message to PDF viewer iframe to highlight text
+                        const pdfViewer = document.getElementById('pdf-viewer');
+                        if (pdfViewer && pdfViewer.contentWindow) {
+                            pdfViewer.contentWindow.postMessage({
+                                type: 'HIGHLIGHT_TEXT',
+                                blocks: blocks,
+                                color: color
+                            }, '*');
+                        }
+                    }
+                {% else %}
+                    // For text documents, highlight directly in the DOM
+                    // We already have general highlighting, but could add specific highlighting here
+                {% endif %}
+            } else {
+                // Hide the matches div
+                matchesDiv.classList.add('hidden');
+
+                // Update icon
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-up');
+                    toggleIcon.classList.add('fa-chevron-down');
+                }
+
+                // Remove specific highlights if needed
+                {% if file_extension == '.pdf' %}
+                    const pdfViewer = document.getElementById('pdf-viewer');
+                    if (pdfViewer && pdfViewer.contentWindow) {
+                        pdfViewer.contentWindow.postMessage({
+                            type: 'CLEAR_HIGHLIGHTS'
+                        }, '*');
+                    }
+                {% endif %}
+            }
+        }
+
+        // Initialize highlighting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize text highlighting
+            highlightDocument();
+
+            // For PDF documents, set up communication with the PDF.js viewer
+            {% if file_extension == '.pdf' %}
+                // Listen for messages from the PDF viewer iframe
+                window.addEventListener('message', function(event) {
+                    if (event.data && event.data.type === 'PDF_LOADED') {
+                        console.log('PDF loaded in viewer');
+                    }
+                });
+            {% endif %}
+        });
+    </script>
+
+    <style>
+        /* Highlight styles for text documents */
+        .highlight-published {
+            background-color: rgba(59, 130, 246, 0.2); /* Light blue */
+            border-bottom: 2px solid rgb(59, 130, 246);
+        }
+        .highlight-published-strong {
+            background-color: rgba(59, 130, 246, 0.4); /* Stronger blue */
+            border-bottom: 2px solid rgb(37, 99, 235);
+        }
+        .highlight-user {
+            background-color: rgba(249, 115, 22, 0.2); /* Light orange */
+            border-bottom: 2px solid rgb(249, 115, 22);
+        }
+        .highlight-user-strong {
+            background-color: rgba(249, 115, 22, 0.4); /* Stronger orange */
+            border-bottom: 2px solid rgb(234, 88, 12);
+        }
+        .highlight {
+            background-color: rgba(234, 179, 8, 0.2); /* Light yellow (legacy) */
+        }
+        .highlight-strong {
+            background-color: rgba(234, 179, 8, 0.4); /* Stronger yellow (legacy) */
+        }
+    </style>
+</body>
+</html>

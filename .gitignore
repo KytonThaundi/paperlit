@@ -11,3 +11,4 @@ instance/
 *.so
 .idea/
 .vscode/
+src/static/pdfjs/

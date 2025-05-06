@@ -6,9 +6,11 @@ A powerful open-source platform for checking document originality and ensuring c
 
 *   **User Authentication:** Secure registration and login.
 *   **Document Upload:** Upload documents for originality review.
-*   **Plagiarism Detection:** Basic check indicating originality score (placeholder for more advanced logic).
-*   **Document Management:** View uploaded documents, scores, and download originals.
-*   **Modern UI:** Homepage redesigned with Tailwind CSS for a clean and responsive experience.
+*   **AI-Powered Similarity Detection:** Advanced AI-based detection of similarities with published materials.
+*   **Document Management:** Upload, edit, and delete documents with a user-friendly interface.
+*   **PDF Viewer with Highlights:** View documents with color-coded highlights showing similar content.
+*   **Similarity Analysis:** Detailed sidebar showing matching content and similarity percentages.
+*   **Modern UI:** Clean, responsive design using Tailwind CSS.
 
 ## Setup
 
@@ -24,10 +26,15 @@ A powerful open-source platform for checking document originality and ensuring c
     source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
 
-3.  Install the required packages:
+3.  Run the setup script to install dependencies and set up the application:
     ```bash
-    pip install -r requirements.txt
+    python setup.py
     ```
+    This will:
+    - Install all required Python packages
+    - Create necessary directories
+    - Download and set up PDF.js for document viewing
+    - Configure the application
 
 4.  **Environment Configuration:**
     *   Copy the example environment file: `cp .env.example .env` (Create `.env.example` if it doesn't exist)
@@ -46,15 +53,14 @@ A powerful open-source platform for checking document originality and ensuring c
     ```
 
 6.  **Initialize the Database:**
-    *   Run the Flask app once to create the tables (ensure your connection details in `.env` are correct).
+    *   Run the database migration script to set up the database schema:
     ```bash
-    flask run
+    python migrate_db.py
     ```
-    *   Alternatively, use Flask shell or a dedicated script if you implement database migrations later.
 
 7.  Run the application:
     ```bash
-    flask run
+    python -m flask --app src.app run --debug
     ```
 
 8.  Access the application in your browser, typically at `http://127.0.0.1:5000`.
@@ -123,17 +129,25 @@ This project is licensed under the MIT License.
 │   │   ├── home.html         # Home page (uses Tailwind CSS via CDN)
 │   │   ├── login.html
 │   │   ├── register.html
+│   │   ├── view_document.html # Document viewer with similarity highlights
 │   │   ├── edit_profile.html # (If implemented)
 │   │   ├── 404.html
 │   │   └── 500.html
 │   ├── static/               # Static files
 │   │   ├── styles.css        # Basic styles (e.g., for login/register)
 │   │   ├── script.js         # Basic JavaScript
-│   │   └── images/           # Images
+│   │   ├── images/           # Images
+│   │   └── pdfjs/            # PDF.js viewer (installed by setup.py)
 │   └── utils/                # Utility functions
 │       ├── __init__.py
 │       └── file_extract.py
+│   └── services/             # Application services
+│       ├── __init__.py
+│       └── plagiarism_service.py # AI-powered similarity detection
 ├── uploads/                  # Directory for uploaded documents (ensure it exists)
+├── setup.py                  # Main setup script
+├── setup_pdfjs.py            # PDF.js setup script
+├── migrate_db.py             # Database migration script
 ├── .env.example              # Example environment variables
 ├── .env                      # Environment variables (ignored by Git)
 ├── README.md                 # Project documentation
