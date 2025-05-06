@@ -4,82 +4,242 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - PaperLit</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
-    <!-- Add Font Awesome for icons -->
+    <!-- Remove old CSS link -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}"> -->
+    <!-- Add Font Awesome (optional, but used for icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Add Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Add minimal custom style for dropdown, if needed */
+        .dropdown-menu {
+            display: none; /* Hidden by default */
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 0.375rem; /* Tailwind's rounded-md */
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        /* Basic styling for drag-drop area */
+        .drag-drop-area {
+            border: 2px dashed #cbd5e1; /* Tailwind gray-300 */
+            border-radius: 0.375rem; /* Tailwind rounded-md */
+            padding: 2.5rem; /* Tailwind p-10 */
+            text-align: center;
+            cursor: pointer;
+            background-color: #f7fafc; /* Tailwind gray-100 */
+            margin-bottom: 1rem; /* Tailwind mb-4 */
+        }
+        .drag-drop-area:hover {
+             background-color: #ebf8ff; /* Tailwind blue-100 */
+             border-color: #90cdf4; /* Tailwind blue-300 */
+        }
+        .drag-drop-area p {
+            color: #718096; /* Tailwind gray-600 */
+            margin-bottom: 0.5rem; /* Tailwind mb-2 */
+        }
+        #document-file {
+            display: none; /* Hide the actual file input */
+        }
+    </style>
 </head>
-<body>
-    <!-- Top Bar -->
-    <div class="top-bar">
-        <div class="logo">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
+<body class="bg-gray-100 font-sans">
+
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center">
+                    <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/logo.png') }}" alt="PaperLit">
+                    <span class="ml-2 text-xl font-semibold text-gray-700">PaperLit</span>
+                </div>
+                <!-- Profile Dropdown -->
+                <div class="flex items-center">
+                    <div class="relative">
+                        <button id="profile-avatar-button" class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition duration-150 ease-in-out">
+                            <img class="h-8 w-8 rounded-full object-cover" src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" alt="User Avatar">
+                        </button>
+                        <div id="dropdown-menu" class="dropdown-menu mt-2 rounded-md shadow-lg">
+                            <a href="{{ url_for('edit_profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Profile</a>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="profile-container">
-            <img src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" alt=" " class="profile-avatar" id="profile-avatar">
-            <div class="dropdown-menu" id="dropdown-menu">
-                <a href="{{ url_for('edit_profile') }}" class="dropdown-item">Edit Profile</a>
-                <a href="{{ url_for('logout') }}" class="dropdown-item">Logout</a>
-            </div>
-    </div>
+    </nav>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <h2>PaperLit</h2>
-        <hr>
-        <h3>History</h3>
-        <ul class="history-list">
-            {% for document in documents %}
-                <li>
-                    <a href="{{ url_for('download_document', document_id=document.id) }}">{{ document.document_name }}</a>
-                    <span>Uploaded on {{ document.uploaded_at.strftime('%Y-%m-%d') }}</span>
-                </li>
-            {% else %}
-                <li>No documents uploaded yet.</li>
-            {% endfor %}
-        </ul>
-        <button class="new-prompt-btn" id="new-review-btn">New Review</button>
-    </div>
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <h1 id="main-heading">Welcome to PaperLit</h1>
-        <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form" style="display: none;">
-            <label for="document-name">Document Name:</label>
-            <input type="text" id="document-name" name="document_name" placeholder="Enter document name" required>
-
-            <label for="document-file">Upload Document:</label>
-            <div class="drag-drop-area" id="drag-drop-area">
-                <p>Drag and drop your file here, or click to select a file</p>
-                <input type="file" id="document-file" name="document_file" required>
+            <!-- Welcome Message / Title Area -->
+             <div id="welcome-area" class="mb-6 flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-gray-800">My Documents</h1>
+                 <button id="new-review-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-plus mr-2"></i>New Review
+                </button>
             </div>
 
-            <button type="submit" class="upload-btn">Upload</button>
-        </form>
+            <!-- Document Table Section (Initially Visible) -->
+            <div id="document-table-section" class="bg-white shadow overflow-hidden sm:rounded-lg">
+                {% if documents %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded At</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Originality Score</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for document in documents %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ document.document_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if document.originality_score is not none %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if document.originality_score >= 0.9 %} bg-green-100 text-green-800 
+                                        {% elif document.originality_score >= 0.7 %} bg-yellow-100 text-yellow-800 
+                                        {% else %} bg-red-100 text-red-800 {% endif %}">
+                                        {{ (document.originality_score * 100) | round(1) }}%
+                                    </span>
+                                {% else %}
+                                    <span class="text-gray-400 italic">Processing...</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <!-- Placeholder for delete action -->
+                                <!-- <button class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash"></i></button> -->
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-10 px-6">
+                    <p class="text-gray-500">No documents have been uploaded yet.</p>
+                    <p class="mt-2 text-sm text-gray-500">Click 'New Review' to upload your first document.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Upload Form Section (Initially Hidden) -->
+            <div id="upload-form-section" class="hidden mt-6 bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Upload a Document</h2>
+                <form action="{{ url_for('plagiarism.upload_document') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="document-name" class="block text-sm font-medium text-gray-700">Document Name</label>
+                        <input type="text" id="document-name" name="document_name" placeholder="Enter a name for your document" required 
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Document File</label>
+                        <div class="drag-drop-area" id="drag-drop-area">
+                            <p id="drag-drop-text">Drag and drop your file here, or click to select a file</p>
+                            <input type="file" id="document-file" name="document_file" required>
+                        </div>
+                        <span id="selected-file-name" class="text-sm text-gray-600"></span>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-upload-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Upload & Check</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        // Toggle dropdown menu visibility
-        const profileAvatar = document.getElementById('profile-avatar');
+        // Profile Dropdown Toggle
+        const profileButton = document.getElementById('profile-avatar-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
-
-        profileAvatar.addEventListener('click', () => {
+        profileButton.addEventListener('click', () => {
             dropdownMenu.classList.toggle('show');
         });
-
-        // Close dropdown if clicked outside
         document.addEventListener('click', (event) => {
-            if (!profileAvatar.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            if (!profileButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.remove('show');
             }
         });
 
-        // Show the form when "New Review" button is clicked
-        document.getElementById('new-review-btn').addEventListener('click', () => {
-            const form = document.getElementById('upload-form');
-            const heading = document.getElementById('main-heading');
-            form.style.display = 'block'; // Show the form
-            heading.textContent = 'Upload a Document'; // Update the heading
+        // Toggle Upload Form Visibility
+        const newReviewBtn = document.getElementById('new-review-btn');
+        const cancelUploadBtn = document.getElementById('cancel-upload-btn');
+        const welcomeArea = document.getElementById('welcome-area');
+        const documentTableSection = document.getElementById('document-table-section');
+        const uploadFormSection = document.getElementById('upload-form-section');
+
+        newReviewBtn.addEventListener('click', () => {
+            welcomeArea.classList.add('hidden');
+            documentTableSection.classList.add('hidden');
+            uploadFormSection.classList.remove('hidden');
         });
+
+        cancelUploadBtn.addEventListener('click', () => {
+            uploadFormSection.classList.add('hidden');
+            welcomeArea.classList.remove('hidden');
+            documentTableSection.classList.remove('hidden');
+             // Reset file input potentially
+             const fileInput = document.getElementById('document-file');
+             const dragDropText = document.getElementById('drag-drop-text');
+             const selectedFileName = document.getElementById('selected-file-name');
+             fileInput.value = ''; // Clear selected file
+             dragDropText.textContent = 'Drag and drop your file here, or click to select a file';
+             selectedFileName.textContent = '';
+        });
+        
+        // Drag and Drop Area Handling
+        const dragDropArea = document.getElementById('drag-drop-area');
+        const fileInput = document.getElementById('document-file');
+        const dragDropText = document.getElementById('drag-drop-text');
+        const selectedFileName = document.getElementById('selected-file-name');
+
+        dragDropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                dragDropText.textContent = 'File selected:';
+                selectedFileName.textContent = event.target.files[0].name;
+            }
+        });
+
+        dragDropArea.addEventListener('dragover', (event) => {
+            event.preventDefault(); // Prevent default behavior
+            dragDropArea.classList.add('border-blue-300', 'bg-blue-100');
+        });
+
+        dragDropArea.addEventListener('dragleave', () => {
+            dragDropArea.classList.remove('border-blue-300', 'bg-blue-100');
+        });
+
+        dragDropArea.addEventListener('drop', (event) => {
+            event.preventDefault(); // Prevent default behavior
+            dragDropArea.classList.remove('border-blue-300', 'bg-blue-100');
+            if (event.dataTransfer.files.length > 0) {
+                fileInput.files = event.dataTransfer.files; // Assign dropped files to input
+                dragDropText.textContent = 'File selected:';
+                selectedFileName.textContent = fileInput.files[0].name;
+            }
+        });
+
     </script>
+
 </body>
 </html>

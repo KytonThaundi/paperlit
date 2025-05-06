@@ -1,47 +1,38 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, current_app
+from src.models import db, User, Document
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import os
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# --- Best Practice: Load secrets from .env ---
+load_dotenv()
+
+# --- Best Practice: Register blueprints and keep app.py minimal ---
+from src.blueprints.plagiarism import plagiarism_bp
 
 # Initialize Flask app
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'
+app = Flask(__name__, instance_relative_config=True)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'changeme')
 
 # PostgreSQL database configuration
 # Ensure the password is URL-encoded if it contains special characters like '#'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://admin:deploy123%23@localhost/paperlit'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Upload folder configuration
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', os.path.join(project_root, 'uploads'))
 
 # Initialize SQLAlchemy
-db = SQLAlchemy(app)
+# (db is now imported from src.models)
+db.init_app(app)
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# User model (maps to the existing 'users' table in the database)
-class User(db.Model):
-    __tablename__ = 'users'  # Explicitly map to the existing 'users' table
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    documents = db.relationship('Document', backref='user', lazy=True)  # Relationship to Document
-
-# Document model (maps to the 'documents' table in the database)
-class Document(db.Model):
-    __tablename__ = 'documents'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    document_name = db.Column(db.String(255), nullable=False)  # Ensure this matches the database
-    file_path = db.Column(db.String(255), nullable=False)
-    uploaded_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+# Models are now defined in src/models.py
 
 # Home Route (Requires Login)
 @app.route('/home')
@@ -51,6 +42,7 @@ def home():
 
     user_id = session['user_id']
     documents = Document.query.filter_by(user_id=user_id).all()
+    # Show originality scores if available, otherwise None
     return render_template('home.html', username=session['user'], documents=documents)
 
 # Combined Login and Registration Route
@@ -106,45 +98,8 @@ def logout():
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login_register'))
 
-# Upload Document Route
-@app.route('/upload_document', methods=['POST'])
-def upload_document():
-    if 'user' not in session or 'user_id' not in session:
-        flash('You need to log in first.', 'danger')
-        return redirect(url_for('login_register'))
-
-    try:
-        # Get the uploaded file and document name
-        document_name = request.form.get('document_name')
-        document_file = request.files.get('document_file')
-
-        if not document_name or not document_file:
-            flash('Both document name and file are required.', 'warning')
-            return redirect(url_for('home'))
-
-        # Secure the filename and save the file
-        filename = secure_filename(document_file.filename)
-        user_id = session['user_id']  # Use user_id from session
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        document_file.save(save_path)
-
-        # Save metadata to the database
-        new_document = Document(
-            user_id=user_id,
-            document_name=document_name,
-            file_path=save_path
-        )
-        db.session.add(new_document)
-        db.session.commit()
-
-        flash('Document uploaded successfully!', 'success')
-        return redirect(url_for('home'))
-
-    except Exception as e:
-        logging.error(f"Error uploading document: {e}")
-        flash('An error occurred while uploading the document.', 'danger')
-        return redirect(url_for('home'))
+# --- The /upload_document route is now handled by the plagiarism blueprint. ---
+# Legacy upload_document route removed. See src/blueprints/plagiarism.py for new implementation.
 
 # Download Document Route
 @app.route('/download_document/<int:document_id>')
@@ -153,12 +108,29 @@ def download_document(document_id):
         flash('You need to log in first.', 'danger')
         return redirect(url_for('login_register'))
 
-    document = Document.query.filter_by(id=document_id, user_id=session['user_id']).first()
-    if not document:
+    document = Document.query.get_or_404(document_id)
+    if document.user_id != session['user_id']:
         flash('Document not found or access denied.', 'danger')
         return redirect(url_for('home'))
 
-    return send_file(document.file_path, as_attachment=True)
+    # Get the path stored in the database
+    stored_path = document.file_path
+    # Extract *only* the filename part, regardless of whether stored_path is absolute or relative
+    filename_only = os.path.basename(stored_path)
+
+    # Get the correctly configured upload folder
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    # Construct the full path using the correct folder and the extracted filename
+    full_file_path = os.path.join(upload_folder, filename_only)
+
+    if not os.path.exists(full_file_path):
+        flash("File not found on server.", "danger")
+        # Log the problematic path and the original stored path for debugging
+        current_app.logger.error(f"File not found at expected path: {full_file_path}. Original stored path was: {stored_path}")
+        return redirect(url_for('home'))
+    
+    # Use the reconstructed full path
+    return send_file(full_file_path, as_attachment=True)
 
 # Edit Profile Route
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -184,6 +156,13 @@ def internal_error(error):
 def not_found_error(error):
     logging.error(f"Page Not Found: {error}")
     return render_template('404.html'), 404
+
+# Register blueprints
+app.register_blueprint(plagiarism_bp)
+
+# --- Create tables if they do not exist (development only) ---
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -286,3 +286,75 @@ body {
     background: #f4f4f9;
     color: #239ef0;
 }
+
+/* Add styles for the document table */
+.document-table-container {
+    margin-top: 30px; /* Space above the table */
+    padding: 20px;
+    background-color: #f9f9f9; /* Light background for the container */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.document-table-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.document-table {
+    width: 100%;
+    border-collapse: collapse; /* Remove space between borders */
+    margin-bottom: 20px;
+}
+
+.document-table th, 
+.document-table td {
+    border: 1px solid #ddd; /* Light grey border for cells */
+    padding: 12px 15px; /* Padding inside cells */
+    text-align: left; /* Align text to the left */
+    vertical-align: middle; /* Center content vertically */
+}
+
+.document-table th {
+    background-color: #f2f2f2; /* Light grey background for headers */
+    font-weight: bold; /* Make header text bold */
+    color: #555;
+}
+
+.document-table tr:nth-child(even) {
+    background-color: #f9f9f9; /* Zebra striping for rows */
+}
+
+.document-table tr:hover {
+    background-color: #f1f1f1; /* Highlight row on hover */
+}
+
+.action-btn {
+    color: #007bff; /* Blue color for the download icon */
+    text-decoration: none;
+    font-size: 1.2em; /* Slightly larger icon */
+    margin-right: 10px; /* Space between icons if more are added */
+    transition: color 0.2s ease;
+}
+
+.action-btn:hover {
+    color: #0056b3; /* Darker blue on hover */
+}
+
+/* Style for the no documents message */
+.document-table-container p {
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 768px) {
+    .document-table th,
+    .document-table td {
+        padding: 8px 10px;
+    }
+    /* Consider further responsive adjustments like hiding columns */
+}
