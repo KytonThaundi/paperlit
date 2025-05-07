@@ -8,22 +8,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Add minimal custom style for dropdown, if needed */
         .dropdown-menu {
-            display: none; /* Hidden by default */
+            display: none;
             position: absolute;
             right: 0;
             background-color: white;
             min-width: 160px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
             z-index: 1;
-            border-radius: 0.375rem; /* Tailwind's rounded-md */
+            border-radius: 0.375rem;
         }
         .dropdown-menu.show {
             display: block;
         }
 
-        /* Logo styles */
         .flex-shrink-0 img {
             display: block;
             height: 2.5rem;
@@ -32,31 +30,29 @@
             object-position: left center;
         }
 
-        /* Flash message styles */
         .flash-message {
             transition: opacity 0.5s ease-in-out;
             opacity: 1;
         }
-        /* Basic styling for drag-drop area */
         .drag-drop-area {
-            border: 2px dashed #cbd5e1; /* Tailwind gray-300 */
-            border-radius: 0.375rem; /* Tailwind rounded-md */
-            padding: 2.5rem; /* Tailwind p-10 */
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 2.5rem;
             text-align: center;
             cursor: pointer;
-            background-color: #f7fafc; /* Tailwind gray-100 */
-            margin-bottom: 1rem; /* Tailwind mb-4 */
+            background-color: #f7fafc;
+            margin-bottom: 1rem;
         }
         .drag-drop-area:hover {
-             background-color: #ebf8ff; /* Tailwind blue-100 */
-             border-color: #90cdf4; /* Tailwind blue-300 */
+             background-color: #ebf8ff;
+             border-color: #90cdf4;
         }
         .drag-drop-area p {
-            color: #718096; /* Tailwind gray-600 */
-            margin-bottom: 0.5rem; /* Tailwind mb-2 */
+            color: #718096;
+            margin-bottom: 0.5rem;
         }
         #document-file {
-            display: none; /* Hide the actual file input */
+            display: none;
         }
     </style>
 </head>
@@ -70,7 +66,7 @@
                 <div class="flex items-center">
                     <div class="relative">
                         <button id="profile-avatar-button" class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition duration-150 ease-in-out">
-                            <img class="h-8 w-8 rounded-full object-cover" src="{{ url_for('static', filename='images/avatar-placeholder.png') }}" alt="User Avatar">
+                            <img class="h-8 w-8 rounded-full object-cover" src="{{ url_for('static', filename=user.avatar_path if user.avatar_path else 'images/avatar-placeholder.png') }}" alt="User Avatar">
                         </button>
                         <div id="dropdown-menu" class="dropdown-menu mt-2 rounded-md shadow-lg">
                             <a href="{{ url_for('edit_profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Profile</a>
@@ -104,9 +100,9 @@
                 {% endwith %}
             </div>
 
-             <div id="welcome-area" class="mb-6 flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-gray-800">My Documents</h1>
-                 <button id="new-review-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+             <div id="welcome-area" class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">My Documents</h1>
+                 <button id="new-review-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto">
                     <i class="fas fa-plus mr-2"></i>New Review
                 </button>
             </div>
@@ -114,50 +110,57 @@
 
             <div id="document-table-section" class="bg-white shadow overflow-hidden sm:rounded-lg">
                 {% if documents %}
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Name</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded At</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Originality Score</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for document in documents %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ document.document_name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {% if document.originality_score is not none %}
-                                    <a href="{{ url_for('view_document', document_id=document.id) }}"
-                                       target="_blank"
-                                       class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:opacity-80
-                                        {% if document.originality_score >= 0.9 %} bg-green-100 text-green-800
-                                        {% elif document.originality_score >= 0.7 %} bg-yellow-100 text-yellow-800
-                                        {% else %} bg-red-100 text-red-800 {% endif %}"
-                                       title="Click to view document with similarity highlights in a new tab">
-                                        {{ (document.originality_score * 100) | round(1) }}%
-                                    </a>
-                                {% else %}
-                                    <span class="text-gray-400 italic">Processing...</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Download">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                                <button onclick="editDocument({{ document.id }}, '{{ document.document_name }}')" class="text-green-600 hover:text-green-900 mr-3" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="confirmDelete({{ document.id }}, '{{ document.document_name }}')" class="text-red-600 hover:text-red-900" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Uploaded At</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for document in documents %}
+                            <tr>
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                    <div class="truncate max-w-[150px] sm:max-w-xs md:max-w-md">{{ document.document_name }}</div>
+                                    <div class="sm:hidden text-xs text-gray-500 mt-1">{{ document.uploaded_at.strftime('%Y-%m-%d') }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{{ document.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {% if document.originality_score is not none %}
+                                        <a href="{{ url_for('view_document', document_id=document.id) }}"
+                                           target="_blank"
+                                           class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:opacity-80
+                                            {% if document.originality_score >= 0.9 %} bg-green-100 text-green-800
+                                            {% elif document.originality_score >= 0.7 %} bg-yellow-100 text-yellow-800
+                                            {% else %} bg-red-100 text-red-800 {% endif %}"
+                                           title="Click to view document with similarity highlights in a new tab">
+                                            {{ (document.originality_score * 100) | round(1) }}%
+                                        </a>
+                                    {% else %}
+                                        <span class="text-gray-400 italic">Processing...</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex flex-wrap gap-3">
+                                        <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-blue-600 hover:text-blue-900" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button onclick="editDocument({{ document.id }}, '{{ document.document_name }}')" class="text-green-600 hover:text-green-900" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="confirmDelete({{ document.id }}, '{{ document.document_name }}')" class="text-red-600 hover:text-red-900" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
                 <div class="text-center py-10 px-6">
                     <p class="text-gray-500">No documents have been uploaded yet.</p>
@@ -210,17 +213,14 @@
     </div>
 
     <script>
-        // Auto-dismiss flash messages after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
-            // Set timeout for each flash message
             const flashMessages = document.querySelectorAll('.flash-message');
             flashMessages.forEach(message => {
                 setTimeout(() => {
                     fadeOut(message);
-                }, 5000); // 5 seconds
+                }, 5000);
             });
 
-            // Add click event listeners to dismiss buttons
             const dismissButtons = document.querySelectorAll('.dismiss-flash');
             dismissButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -229,7 +229,6 @@
                 });
             });
 
-            // Fade out animation function
             function fadeOut(element) {
                 let opacity = 1;
                 const timer = setInterval(function() {
@@ -276,17 +275,14 @@
             document.getElementById('selected-file-name').textContent = '';
         });
 
-        // Check if we're in edit mode from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
         const editMode = urlParams.get('edit');
         if (editMode && {{ editing_document_id|default('null') }}) {
-            // Show the upload form in edit mode
             welcomeArea.classList.add('hidden');
             documentTableSection.classList.add('hidden');
             flashMessages.classList.add('hidden');
             uploadFormSection.classList.remove('hidden');
 
-            // Set the document name in the form
             const documentName = "{{ editing_document_name|default('') }}";
             if (documentName) {
                 document.getElementById('document-name').value = documentName;
@@ -297,9 +293,8 @@
             uploadFormSection.classList.add('hidden');
             welcomeArea.classList.remove('hidden');
             documentTableSection.classList.remove('hidden');
-            flashMessages.classList.remove('hidden'); // Show flash messages when returning to document list
+            flashMessages.classList.remove('hidden');
 
-            // Reset form
             const fileInput = document.getElementById('document-file');
             const dragDropText = document.getElementById('drag-drop-text');
             const selectedFileName = document.getElementById('selected-file-name');

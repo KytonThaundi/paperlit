@@ -3,6 +3,16 @@ __pycache__/
 .env
 uploads/
 src/uploads/
+src/static/uploads/
+src/static/uploads/avatars/
+**/uploads/**/*.png
+**/uploads/**/*.jpg
+**/uploads/**/*.jpeg
+**/uploads/**/*.gif
+**/uploads/**/*.webp
+**/uploads/**/*.pdf
+**/uploads/**/*.txt
+!**/uploads/**/.gitkeep
 instance/
 *.pyc
 *.pyo

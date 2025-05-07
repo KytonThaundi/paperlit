@@ -34,15 +34,12 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
-    <!-- Top Navigation Bar -->
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
                     <img class="block h-8 w-auto" src="{{ url_for('static', filename='images/paperlit-logo.png') }}" alt="PaperLit">
                 </div>
-                <!-- Navigation Links -->
                 <div class="flex items-center">
                     <a href="{{ url_for('home') }}" class="text-gray-700 hover:text-blue-600 mr-4">
                         <i class="fas fa-home mr-1"></i> Home
@@ -50,14 +47,19 @@
                     <a href="{{ url_for('download_document', document_id=document.id) }}" class="text-gray-700 hover:text-blue-600 mr-4">
                         <i class="fas fa-download mr-1"></i> Download
                     </a>
+                    <div class="ml-4 relative">
+                        <a href="{{ url_for('edit_profile') }}" class="flex items-center">
+                            <img class="h-8 w-8 rounded-full object-cover border-2 border-transparent hover:border-blue-500"
+                                 src="{{ url_for('static', filename=user.avatar_path if user.avatar_path else 'images/avatar-placeholder.png') }}"
+                                 alt="User Avatar">
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Area -->
     <div class="flex">
-        <!-- Document Content -->
         <div class="main-content w-3/4 p-6 bg-white shadow-md m-4 rounded-lg">
             <h1 class="text-2xl font-bold text-gray-800 mb-4">{{ document.document_name }}</h1>
             <div class="flex items-center mb-4">
@@ -71,7 +73,6 @@
             </div>
 
             {% if file_extension == '.pdf' %}
-                <!-- PDF Viewer using PDF.js -->
                 <div class="mb-4 relative" style="height: calc(100vh - 200px);">
                     <div id="pdf-container" class="w-full h-full border rounded-md overflow-hidden">
                         <iframe id="pdf-viewer" src="{{ url_for('static', filename='pdfjs/web/viewer.html') }}?file={{ url_for('serve_document', document_id=document.id, _external=True) }}"
@@ -80,14 +81,12 @@
                     <div id="pdf-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
                 </div>
             {% else %}
-                <!-- Text document viewer with highlighting -->
                 <div id="document-content" class="document-text text-gray-800 border p-4 rounded-md">
                     {{ document_text|safe }}
                 </div>
             {% endif %}
         </div>
 
-        <!-- Similarity Sidebar -->
         <div class="sidebar w-1/4 bg-white shadow-md m-4 p-4 rounded-lg border-l-4 border-blue-500">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-800">Similarity Analysis</h2>
@@ -202,12 +201,9 @@
     </div>
 
     <script>
-        // Store similarity data for highlighting
         const similarityData = {{ similarity_details|tojson }};
 
-        // Function to highlight matching text in text documents
         function highlightDocument() {
-            // Only run for text documents, not PDFs
             {% if file_extension != '.pdf' %}
                 const documentContent = document.getElementById('document-content');
                 if (!documentContent) return;
@@ -229,17 +225,14 @@
                         {% endfor %}
                     {% endfor %}
 
-                    // Sort matches by position (descending) to avoid index shifting
                     matches.sort((a, b) => b.start - a.start);
 
-                    // Apply highlights
                     let html = documentText;
                     for (const match of matches) {
                         const before = html.substring(0, match.start);
                         const matched = html.substring(match.start, match.end);
                         const after = html.substring(match.end);
 
-                        // Choose highlight class based on document type and similarity
                         let highlightClass = 'highlight';
                         if (match.docType === 'Published Material') {
                             highlightClass = match.similarity > 0.5 ? 'highlight-published-strong' : 'highlight-published';
@@ -255,15 +248,12 @@
             {% endif %}
         }
 
-        // Function to toggle visibility of matching content and highlight in document
         function highlightMatches(index) {
             const matchesDiv = document.getElementById(`matches-${index}`);
             const toggleIcon = document.querySelector(`.toggle-icon-${index}`);
-            const docIndex = index - 1; // Convert from 1-based to 0-based index
+            const docIndex = index - 1;
 
-            // Toggle visibility of the matches div
             if (matchesDiv.classList.contains('hidden')) {
-                // Hide all other match divs first and reset their icons
                 document.querySelectorAll('[id^="matches-"]').forEach((div, idx) => {
                     if (div !== matchesDiv) {
                         div.classList.add('hidden');
@@ -273,16 +263,13 @@
                     }
                 });
 
-                // Show this match div and update icon
                 matchesDiv.classList.remove('hidden');
                 if (toggleIcon) {
                     toggleIcon.classList.remove('fa-chevron-down');
                     toggleIcon.classList.add('fa-chevron-up');
                 }
 
-                // Highlight the matching text
                 {% if file_extension == '.pdf' %}
-                    // For PDF documents, use the PDF.js viewer
                     if (similarityData &&
                         similarityData.similar_documents &&
                         similarityData.similar_documents[docIndex] &&
@@ -291,10 +278,8 @@
                         const blocks = similarityData.similar_documents[docIndex].matching_blocks;
                         const docType = similarityData.similar_documents[docIndex].document_type || 'User Document';
 
-                        // Get a color based on the document type
                         const color = docType === 'Published Material' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(249, 115, 22, 0.3)';
 
-                        // Send message to PDF viewer iframe to highlight text
                         const pdfViewer = document.getElementById('pdf-viewer');
                         if (pdfViewer && pdfViewer.contentWindow) {
                             pdfViewer.contentWindow.postMessage({
@@ -304,21 +289,15 @@
                             }, '*');
                         }
                     }
-                {% else %}
-                    // For text documents, highlight directly in the DOM
-                    // We already have general highlighting, but could add specific highlighting here
                 {% endif %}
             } else {
-                // Hide the matches div
                 matchesDiv.classList.add('hidden');
 
-                // Update icon
                 if (toggleIcon) {
                     toggleIcon.classList.remove('fa-chevron-up');
                     toggleIcon.classList.add('fa-chevron-down');
                 }
 
-                // Remove specific highlights if needed
                 {% if file_extension == '.pdf' %}
                     const pdfViewer = document.getElementById('pdf-viewer');
                     if (pdfViewer && pdfViewer.contentWindow) {
@@ -330,14 +309,10 @@
             }
         }
 
-        // Initialize highlighting when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize text highlighting
             highlightDocument();
 
-            // For PDF documents, set up communication with the PDF.js viewer
             {% if file_extension == '.pdf' %}
-                // Listen for messages from the PDF viewer iframe
                 window.addEventListener('message', function(event) {
                     if (event.data && event.data.type === 'PDF_LOADED') {
                         console.log('PDF loaded in viewer');
@@ -348,28 +323,27 @@
     </script>
 
     <style>
-        /* Highlight styles for text documents */
         .highlight-published {
-            background-color: rgba(59, 130, 246, 0.2); /* Light blue */
+            background-color: rgba(59, 130, 246, 0.2);
             border-bottom: 2px solid rgb(59, 130, 246);
         }
         .highlight-published-strong {
-            background-color: rgba(59, 130, 246, 0.4); /* Stronger blue */
+            background-color: rgba(59, 130, 246, 0.4);
             border-bottom: 2px solid rgb(37, 99, 235);
         }
         .highlight-user {
-            background-color: rgba(249, 115, 22, 0.2); /* Light orange */
+            background-color: rgba(249, 115, 22, 0.2);
             border-bottom: 2px solid rgb(249, 115, 22);
         }
         .highlight-user-strong {
-            background-color: rgba(249, 115, 22, 0.4); /* Stronger orange */
+            background-color: rgba(249, 115, 22, 0.4);
             border-bottom: 2px solid rgb(234, 88, 12);
         }
         .highlight {
-            background-color: rgba(234, 179, 8, 0.2); /* Light yellow (legacy) */
+            background-color: rgba(234, 179, 8, 0.2);
         }
         .highlight-strong {
-            background-color: rgba(234, 179, 8, 0.4); /* Stronger yellow (legacy) */
+            background-color: rgba(234, 179, 8, 0.4);
         }
     </style>
 </body>

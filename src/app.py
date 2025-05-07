@@ -3,6 +3,7 @@ from src.models import db, User, Document
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import os
+import time
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -34,16 +35,17 @@ def home():
     if 'user' not in session:
         return redirect(url_for('login_register'))
 
-    # Check if we're in edit mode
     edit_mode = request.args.get('edit', None)
     editing_document_id = session.get('editing_document_id', None)
     editing_document_name = session.get('editing_document_name', None)
 
     user_id = session['user_id']
+    user = User.query.get(user_id)
     documents = Document.query.filter_by(user_id=user_id).order_by(Document.uploaded_at.desc()).all()
 
     return render_template('home.html',
                           username=session['user'],
+                          user=user,
                           documents=documents,
                           edit_mode=edit_mode,
                           editing_document_id=editing_document_id,
@@ -100,32 +102,26 @@ def logout():
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login_register'))
 
-# Helper function to find document file path
+
 def get_document_file_path(document):
-    """Find the actual file path for a document."""
     stored_path = document.file_path
 
-    # Fix the duplicate src/src path issue by replacing it with src
     if 'src/src' in stored_path:
         stored_path = stored_path.replace('src/src', 'src')
 
-    # Extract *only* the filename part, regardless of whether stored_path is absolute or relative
     filename_only = os.path.basename(stored_path)
 
-    # Try multiple possible locations
     possible_paths = [
-        stored_path,  # The path as stored in the database
-        os.path.join(project_root, 'uploads', filename_only),  # Root uploads folder
-        os.path.join(project_root, 'src', 'uploads', filename_only),  # src/uploads folder
+        stored_path,
+        os.path.join(project_root, 'uploads', filename_only),
+        os.path.join(project_root, 'src', 'uploads', filename_only),
     ]
 
-    # Try each path
     for path in possible_paths:
         if os.path.exists(path):
             return path
 
-    # If not found, try a more exhaustive search
-    for root, dirs, files in os.walk(project_root):
+    for root, _, files in os.walk(project_root):
         if filename_only in files:
             return os.path.join(root, filename_only)
 
@@ -157,30 +153,30 @@ def view_document(document_id):
         flash('You need to log in first.', 'danger')
         return redirect(url_for('login_register'))
 
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+
     document = Document.query.get_or_404(document_id)
-    if document.user_id != session['user_id']:
+    if document.user_id != user_id:
         flash('Document not found or access denied.', 'danger')
         return redirect(url_for('home'))
 
-    # Get the document file path
     file_path = get_document_file_path(document)
 
     if not file_path:
         flash("File not found on server.", "danger")
         return redirect(url_for('home'))
 
-    # Get document text
     from src.utils.file_extract import extract_text_from_file
     document_text = extract_text_from_file(file_path)
 
-    # Get similarity details
     similarity_details = document.get_similarity_details()
 
-    # Determine file type for appropriate viewer
     ext = os.path.splitext(file_path)[1].lower()
 
     return render_template(
         'view_document.html',
+        user=user,
         document=document,
         document_text=document_text,
         similarity_details=similarity_details,
@@ -190,7 +186,6 @@ def view_document(document_id):
 
 @app.route('/serve_document/<int:document_id>')
 def serve_document(document_id):
-    """Serve the document file for viewing (not downloading)."""
     if 'user' not in session:
         return "Unauthorized", 401
 
@@ -198,17 +193,14 @@ def serve_document(document_id):
     if document.user_id != session['user_id']:
         return "Access denied", 403
 
-    # Get the document file path
     file_path = get_document_file_path(document)
 
     if not file_path:
         return "File not found", 404
 
-    # Determine the MIME type based on file extension
     ext = os.path.splitext(file_path)[1].lower()
     mime_type = 'application/pdf' if ext == '.pdf' else 'text/plain'
 
-    # Serve the file with the appropriate MIME type
     return send_file(file_path, mimetype=mime_type)
 
 @app.route('/delete_document/<int:document_id>', methods=['POST'])
@@ -223,15 +215,12 @@ def delete_document(document_id):
         return redirect(url_for('home'))
 
     try:
-        # Get the file path
         file_path = get_document_file_path(document)
 
-        # Try to delete the file from the filesystem
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
             print(f"Deleted file: {file_path}")
 
-        # Delete from database
         db.session.delete(document)
         db.session.commit()
 
@@ -253,7 +242,6 @@ def edit_document(document_id):
         flash('Document not found or access denied.', 'danger')
         return redirect(url_for('home'))
 
-    # Store document ID in session for the upload form to use
     session['editing_document_id'] = document_id
     session['editing_document_name'] = document.document_name
 
@@ -265,11 +253,67 @@ def edit_profile():
         flash('You need to log in first.', 'danger')
         return redirect(url_for('login_register'))
 
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('logout'))
+
     if request.method == 'POST':
+        new_username = request.form.get('username')
+        if new_username != user.username:
+            if User.query.filter(User.username == new_username, User.id != user.id).first():
+                flash('Username already taken.', 'danger')
+                return render_template('edit_profile.html', user=user)
+            user.username = new_username
+            session['user'] = new_username
+
+        new_email = request.form.get('email')
+        if new_email != user.email:
+            if User.query.filter(User.email == new_email, User.id != user.id).first():
+                flash('Email already taken.', 'danger')
+                return render_template('edit_profile.html', user=user)
+            user.email = new_email
+
+        user.full_name = request.form.get('full_name')
+        user.bio = request.form.get('bio')
+        user.institution = request.form.get('institution')
+
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+            file_ext = avatar_file.filename.rsplit('.', 1)[1].lower() if '.' in avatar_file.filename else ''
+
+            if file_ext not in allowed_extensions:
+                flash('Invalid file type. Please upload a PNG, JPG, or GIF image.', 'danger')
+                return render_template('edit_profile.html', user=user)
+
+            base_filename = f"avatar_{user.id}_{int(time.time())}"
+            avatar_filename = secure_filename(f"{base_filename}.{file_ext}")
+            avatar_path = os.path.join('uploads/avatars', avatar_filename)
+            full_path = os.path.join(app.static_folder, avatar_path)
+
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+            avatar_file.save(full_path)
+
+            user.avatar_path = avatar_path
+
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+
+        if current_password and new_password:
+            if check_password_hash(user.password, current_password):
+                user.password = generate_password_hash(new_password, method='pbkdf2:sha256')
+                flash('Password updated successfully.', 'success')
+            else:
+                flash('Current password is incorrect.', 'danger')
+                return render_template('edit_profile.html', user=user)
+
+        db.session.commit()
         flash('Profile updated successfully!', 'success')
         return redirect(url_for('home'))
 
-    return render_template('edit_profile.html')
+    return render_template('edit_profile.html', user=user)
 
 @app.errorhandler(500)
 def internal_error(error):

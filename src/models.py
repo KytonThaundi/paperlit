@@ -1,6 +1,4 @@
-"""
-Database models and SQLAlchemy initialization for Paperlit.
-"""
+
 from flask_sqlalchemy import SQLAlchemy
 import json
 
@@ -14,7 +12,6 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    # Profile fields
     full_name = db.Column(db.String(100), nullable=True)
     bio = db.Column(db.Text, nullable=True)
     avatar_path = db.Column(db.String(255), nullable=True, default='images/avatar-placeholder.png')
@@ -30,17 +27,15 @@ class Document(db.Model):
     file_path = db.Column(db.String(255), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     originality_score = db.Column(db.Float, nullable=True)
-    similarity_details = db.Column(db.Text, nullable=True)  # Stored as JSON
+    similarity_details = db.Column(db.Text, nullable=True)
 
     def set_similarity_details(self, details):
-        """Store similarity details as JSON string"""
         if details:
             self.similarity_details = json.dumps(details)
         else:
             self.similarity_details = None
 
     def get_similarity_details(self):
-        """Retrieve similarity details as Python dict"""
         if self.similarity_details:
             try:
                 return json.loads(self.similarity_details)
